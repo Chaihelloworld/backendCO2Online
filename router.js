@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const db = require("./database");
+const { getDownloadURL, ref } = require('firebase/storage');
+const  storage  = require('./firebase');
 const {
   signupValidation,
   loginValidation,
@@ -10,6 +12,7 @@ const { validationResult } = require("express-validator");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const app = express();
+const cloudinary = require('cloudinary').v2;
 
 const moment = require("moment");
 
@@ -809,13 +812,13 @@ router.get("/list-resource-3year", (req, res, next) => {
 });
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-router.post('/create_products', (req, res) => {
-  const { name, description, image, CO2, type_products, category_id } = req.body;
+router.post("/create_products", (req, res) => {
+  const { name, description, image, CO2, type_products, category_id } =
+    req.body;
 
   const product = { name, description, image, CO2, type_products, category_id };
-  console.log(product)
-  db.query('INSERT INTO products SET ?', product, (error, results, fields) => {
+  console.log(product);
+  db.query("INSERT INTO products SET ?", product, (error, results, fields) => {
     if (error) throw error;
     res.send({
       success: true,
@@ -824,19 +827,21 @@ router.post('/create_products', (req, res) => {
   });
 });
 
-router.get('/products_list', (req, res) => {
+router.get("/products_list", (req, res) => {
   const { category_id, name } = req.query;
-  let query = 'SELECT * FROM products';
-  let params = [];
 
+  let query = `SELECT p.*, c.name AS category_name
+  FROM products p
+  JOIN product_categories c ON p.category_id = c.id`;
+  let params = [];
   if (category_id != null && name != null) {
-    query += ' WHERE category_id = ? AND name LIKE ?';
+    query += " WHERE category_id = ? AND name LIKE ?";
     params = [category_id, `%${name}%`];
   } else if (category_id != null) {
-    query += ' WHERE category_id = ?';
+    query += " WHERE category_id = ?";
     params = [category_id];
   } else if (name != null) {
-    query += ' WHERE name LIKE ?';
+    query += " WHERE name LIKE ?";
     params = [`%${name}%`];
   }
 
@@ -857,8 +862,8 @@ router.get('/products_list', (req, res) => {
     }
   });
 });
-router.get('/categories', (req, res) => {
-  db.query('SELECT * FROM product_categories', (error, results, fields) => {
+router.get("/categories", (req, res) => {
+  db.query("SELECT * FROM product_categories", (error, results, fields) => {
     if (error) throw error;
     if (results.length === 0) {
       res.send({
@@ -875,29 +880,79 @@ router.get('/categories', (req, res) => {
     }
   });
 });
-router.get('/info_product', (req, res) => {
-  req.query.id
-  db.query(`SELECT p.*, c.name AS category_name
+router.get("/info_product", (req, res) => {
+  req.query.id;
+  db.query(
+    `SELECT p.*, c.name AS category_name
   FROM products p
   JOIN product_categories c ON p.category_id = c.id
-  WHERE p.id = ${req.query.id};`, (error, results, fields) => {
-    if (error) throw error;
-    if (results.length === 0) {
-      res.send({
-        success: false,
-        data: [],
-        message: "Fetch error.",
-      });
-    } else {
-      res.send({
-        success: true,
-        data: results,
-        message: "Fetch Successfully.",
-      });
+  WHERE p.id = ${req.query.id};`,
+    (error, results, fields) => {
+      if (error) throw error;
+      if (results.length === 0) {
+        res.send({
+          success: false,
+          data: [],
+          message: "Fetch error.",
+        });
+      } else {
+        res.send({
+          success: true,
+          data: results,
+          message: "Fetch Successfully.",
+        });
+      }
     }
-  });
+  );
 });
 
+router.delete("/delete_product", (req, res, next) => {
+  const id = req.query.id;
+  console.log(id);
+
+  db.query(
+    `DELETE FROM products WHERE id = '${id}'`,
+    (err, result) => {
+      if (result && result.affectedRows > 0) { // <-- Check if at least one row was deleted
+        res.send({
+          success: true,
+          message: "Delete Successfully.",
+        });
+      } else {
+        res.send({
+          success: false,
+          message: "Delete Unsuccessful.",
+        });
+      }
+    }
+  );
+});
+
+// router.get("/image_preview", async (req, res) => {
+//   req.query.image;
+
+//   const ress = cloudinary.uploader.upload(req.query.image, {public_id: "olympic_flag"})
+
+//   ress.then((data) => {
+//     res.send(data.secure_url)
+
+//   }).catch((err) => {
+//     console.log(err);
+//   });
+//   const url = cloudinary.url("olympic_flag", {
+//     width: 100,
+//     height: 150,
+//     Crop: 'fill'
+//   });
+//   console.log(url)
+//   // const url = await getDownloadURL(fileRef);
+//     // res.send({
+//     //   success: false,
+//     //   data: [],
+//     //   message: "Fetch error.",
+//     // });
+ 
+// });
 
 
 module.exports = router;
