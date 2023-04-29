@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("./database");
-const { getDownloadURL, ref } = require('firebase/storage');
-const  storage  = require('./firebase');
+
 const {
   signupValidation,
   loginValidation,
@@ -12,7 +11,6 @@ const { validationResult } = require("express-validator");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const app = express();
-const cloudinary = require('cloudinary').v2;
 
 const moment = require("moment");
 
@@ -826,42 +824,101 @@ router.post("/create_products", (req, res) => {
     });
   });
 });
-
 router.get("/products_list", (req, res) => {
-  const { category_id, name } = req.query;
-
+  const { category_id, name, page, perPage } = req.query;
   let query = `SELECT p.*, c.name AS category_name
   FROM products p
   JOIN product_categories c ON p.category_id = c.id`;
+  let countQuery = `SELECT COUNT(*) as count FROM products p JOIN product_categories c ON p.category_id = c.id`;
   let params = [];
+  let countParams = [];
+
+  // Apply filters
   if (category_id != null && name != null) {
     query += " WHERE category_id = ? AND name LIKE ?";
+    countQuery += " WHERE category_id = ? AND name LIKE ?";
     params = [category_id, `%${name}%`];
+    countParams = [category_id, `%${name}%`];
   } else if (category_id != null) {
     query += " WHERE category_id = ?";
+    countQuery += " WHERE category_id = ?";
     params = [category_id];
+    countParams = [category_id];
   } else if (name != null) {
     query += " WHERE name LIKE ?";
+    countQuery += " WHERE name LIKE ?";
     params = [`%${name}%`];
+    countParams = [`%${name}%`];
   }
 
-  db.query(query, params, (error, results, fields) => {
+  // Execute count query to get total number of results
+  db.query(countQuery, countParams, (error, countResults, fields) => {
     if (error) throw error;
-    if (results.length === 0) {
-      res.send({
-        success: false,
-        data: [],
-        message: "Fetch error.",
-      });
-    } else {
-      res.send({
-        success: true,
-        data: results,
-        message: "Fetch Successfully.",
-      });
-    }
+
+    const totalResults = countResults[0].count;
+
+    // Calculate limit and offset based on page and perPage
+    const limit = parseInt(perPage) || 10;
+    const offset = (parseInt(page) - 1) * limit || 0;
+
+    // Add limit and offset to query
+    query += ` LIMIT ${limit} OFFSET ${offset}`;
+
+    db.query(query, params, (error, results, fields) => {
+      if (error) throw error;
+      if (results.length === 0) {
+        res.send({
+          success: false,
+          data: [],
+          message: "Fetch error.",
+        });
+      } else {
+        res.send({
+          success: true,
+          data: results,
+          totalResults,
+          currentPage: parseInt(page) || 1,
+          totalPages: Math.ceil(totalResults / limit),
+          message: "Fetch Successfully.",
+        });
+      }
+    });
   });
 });
+// router.get("/products_list", (req, res) => {
+//   const { category_id, name } = req.query;
+//   let query = `SELECT p.*, c.name AS category_name
+//   FROM products p
+//   JOIN product_categories c ON p.category_id = c.id`;
+//   let params = [];
+//   if (category_id != null && name != null) {
+//     query += " WHERE category_id = ? AND name LIKE ?";
+//     params = [category_id, `%${name}%`];
+//   } else if (category_id != null) {
+//     query += " WHERE category_id = ?";
+//     params = [category_id];
+//   } else if (name != null) {
+//     query += " WHERE name LIKE ?";
+//     params = [`%${name}%`];
+//   }
+
+//   db.query(query, params, (error, results, fields) => {
+//     if (error) throw error;
+//     if (results.length === 0) {
+//       res.send({
+//         success: false,
+//         data: [],
+//         message: "Fetch error.",
+//       });
+//     } else {
+//       res.send({
+//         success: true,
+//         data: results,
+//         message: "Fetch Successfully.",
+//       });
+//     }
+//   });
+// });
 router.get("/categories", (req, res) => {
   db.query("SELECT * FROM product_categories", (error, results, fields) => {
     if (error) throw error;
@@ -910,22 +967,20 @@ router.delete("/delete_product", (req, res, next) => {
   const id = req.query.id;
   console.log(id);
 
-  db.query(
-    `DELETE FROM products WHERE id = '${id}'`,
-    (err, result) => {
-      if (result && result.affectedRows > 0) { // <-- Check if at least one row was deleted
-        res.send({
-          success: true,
-          message: "Delete Successfully.",
-        });
-      } else {
-        res.send({
-          success: false,
-          message: "Delete Unsuccessful.",
-        });
-      }
+  db.query(`DELETE FROM products WHERE id = '${id}'`, (err, result) => {
+    if (result && result.affectedRows > 0) {
+      // <-- Check if at least one row was deleted
+      res.send({
+        success: true,
+        message: "Delete Successfully.",
+      });
+    } else {
+      res.send({
+        success: false,
+        message: "Delete Unsuccessful.",
+      });
     }
-  );
+  });
 });
 
 // router.get("/image_preview", async (req, res) => {
@@ -951,8 +1006,7 @@ router.delete("/delete_product", (req, res, next) => {
 //     //   data: [],
 //     //   message: "Fetch error.",
 //     // });
- 
-// });
 
+// });
 
 module.exports = router;
