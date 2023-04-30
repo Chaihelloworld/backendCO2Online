@@ -58,64 +58,7 @@ router.post("/register", signupValidation, (req, res, next) => {
     }
   );
 });
-router.post("/create_list", createListValid, (req, res, next) => {
-  db.query(
-    `INSERT INTO roomer ( schoolname,fullname, phone, email, address, member, amount_month, occupation,billelec,numbillelec
-      ,name_using_w,num_using_w,using_pow,using_pow_amount,guss_amount,guss_size,guss_using,class,num,using_powBenzin,using_pow_amountBenzin) VALUES ( 
-        '${req.body.schoolname}',    
-        '${req.body.fullname}',
-            '${req.body.phone}',
-            '${req.body.email}',
-            '${req.body.address}',
-            '${req.body.member}',
-            '${req.body.amount_month}',
-            '${req.body.occupation}',
-            '${req.body.billelec}',
-            '${req.body.numbillelec}',
-            '${req.body.name_using_w}',
-            '${req.body.num_using_w}',
-            '${req.body.using_pow}',
-            '${req.body.using_pow_amount}',
-            '${req.body.guss_amount}',
-            '${req.body.guss_size}',
-            '${req.body.guss_using}',
-            '${req.body.class}',
-            '${req.body.num}',
-            '${req.body.using_powBenzin}',
-            '${req.body.using_pow_amountBenzin}'
-            )`,
-    (err, result) => {
-      if (result) {
-        return res.status(200).send({
-          msg: "seccess : true \n status API server 500 is ready!!",
-        });
-      } else {
-        // username is available
-        return res.status(500).send({
-          msg: err,
-        });
-      }
-    }
-  );
-});
-router.post("/create_room", (req, res, next) => {
-  db.query(
-    `INSERT INTO room ( userid, name, link) VALUES ( '${req.body.userid}', '${req.body.name}', '${req.body.link}')`,
 
-    (err, result) => {
-      if (result) {
-        return res.status(200).send({
-          msg: "status ok",
-        });
-      } else {
-        // username is available
-        return res.status(500).send({
-          msg: err,
-        });
-      }
-    }
-  );
-});
 
 app.use(
   cookieSession({
