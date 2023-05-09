@@ -769,6 +769,7 @@ router.post("/create_products", (req, res) => {
 });
 router.get("/products_list", (req, res) => {
   const { category_id, name, page, perPage } = req.query;
+  console.log('name',name)
   let query = `SELECT p.*, c.name AS category_name
   FROM products p
   JOIN product_categories c ON p.category_id = c.id`;
@@ -778,21 +779,28 @@ router.get("/products_list", (req, res) => {
 
   // Apply filters
   if (category_id != null && name != null) {
-    query += " WHERE category_id = ? AND name LIKE ?";
-    countQuery += " WHERE category_id = ? AND name LIKE ?";
+    query += " WHERE p.category_id = ? AND p.name LIKE ?";
+    countQuery += " WHERE p.category_id = ? AND p.name LIKE ?";
     params = [category_id, `%${name}%`];
     countParams = [category_id, `%${name}%`];
   } else if (category_id != null) {
-    query += " WHERE category_id = ?";
-    countQuery += " WHERE category_id = ?";
+    query += " WHERE p.category_id = ?";
+    countQuery += " WHERE p.category_id = ?";
     params = [category_id];
     countParams = [category_id];
-  } else if (name != null) {
-    query += " WHERE name LIKE ?";
-    countQuery += " WHERE name LIKE ?";
-    params = [`%${name}%`];
-    countParams = [`%${name}%`];
+  } else if 
+  (name != null) {
+    query += " WHERE p.name LIKE ?";
+    countQuery += " WHERE p.name LIKE ?";
+    params = [`%${ decodeURIComponent(name)}%`];
+    countParams = [`%${decodeURIComponent(name)}%`];
   }
+  // (name != null) {
+  //   query += " WHERE p.name LIKE ?";
+  //   countQuery += " WHERE p.name LIKE ?";
+  //   params = [`%${name}%`];
+  //   countParams = [`%${name}%`];
+  // }
 
   // Execute count query to get total number of results
   db.query(countQuery, countParams, (error, countResults, fields) => {
@@ -925,6 +933,60 @@ router.delete("/delete_product", (req, res, next) => {
     }
   });
 });
+router.get("/check_product", (req, res) => {
+const value_co2 = req.query.value_co2;
+const type = req.query.type;
+const id = req.query.id;
+
+  db.query(`SELECT *
+  FROM products
+  WHERE CO2 BETWEEN ${value_co2}-5 AND ${value_co2}
+  AND category_id = ${type} AND id != ${id}
+  ORDER BY CO2 DESC
+  LIMIT 3`, (error, results, fields) => {
+    if (error) throw error;
+    if (results.length === 0) {
+      res.send({
+        success: false,
+        data: [],
+        message: "Fetch error.",
+      });
+    } else {
+      res.send({
+        success: true,
+        data: results,
+        message: "Fetch Successfully.",
+      });
+    }
+  });
+});
+
+{/*
+SELECT c.username AS user_name, c.point, p.name AS product_name, p.CO2, p.image, p.category_id, l.* FROM list_productbyuser l RIGHT JOIN customers c ON l.userId = c.id INNER JOIN products p ON l.product_id = p.id;
+*/}
+router.get("/select_product", (req, res) => {
+  const in_id = req.query.in_id;
+console.log(in_id)
+  
+    db.query(`SELECT name,CO2,image
+    FROM products
+    WHERE id IN (${in_id});`, (error, results, fields) => {
+      if (error) throw error;
+      if (results.length === 0) {
+        res.send({
+          success: false,
+          data: [],
+          message: "Fetch error.",
+        });
+      } else {
+        res.send({
+          success: true,
+          data: results,
+          message: "Fetch Successfully.",
+        });
+      }
+    });
+  });
 
 // router.get("/image_preview", async (req, res) => {
 //   req.query.image;
