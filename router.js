@@ -59,7 +59,6 @@ router.post("/register", signupValidation, (req, res, next) => {
   );
 });
 
-
 app.use(
   cookieSession({
     name: "session",
@@ -67,7 +66,6 @@ app.use(
     maxAge: 3600 * 1000, // 1hr
   })
 );
-
 
 router.post("/login", loginValidation, (req, res, next) => {
   db.query(
@@ -153,7 +151,6 @@ router.get("/logout", (req, res) => {
   // res.redirect('/');
 });
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 router.post("/create_products", (req, res) => {
@@ -172,7 +169,7 @@ router.post("/create_products", (req, res) => {
 });
 router.get("/products_list", (req, res) => {
   const { category_id, name, page, perPage } = req.query;
-  console.log('name',name)
+  console.log("name", name);
   let query = `SELECT p.*, c.name AS category_name
   FROM products p
   JOIN product_categories c ON p.category_id = c.id`;
@@ -191,11 +188,10 @@ router.get("/products_list", (req, res) => {
     countQuery += " WHERE p.category_id = ?";
     params = [category_id];
     countParams = [category_id];
-  } else if 
-  (name != null) {
+  } else if (name != null) {
     query += " WHERE p.name LIKE ?";
     countQuery += " WHERE p.name LIKE ?";
-    params = [`%${ decodeURIComponent(name)}%`];
+    params = [`%${decodeURIComponent(name)}%`];
     countParams = [`%${decodeURIComponent(name)}%`];
   }
   // (name != null) {
@@ -337,43 +333,18 @@ router.delete("/delete_product", (req, res, next) => {
   });
 });
 router.get("/check_product", (req, res) => {
-const value_co2 = req.query.value_co2;
-const type = req.query.type;
-const id = req.query.id;
+  const value_co2 = req.query.value_co2;
+  const type = req.query.type;
+  const id = req.query.id;
 
-  db.query(`SELECT *
+  db.query(
+    `SELECT *
   FROM products
   WHERE CO2 BETWEEN ${value_co2}-5 AND ${value_co2}
   AND category_id = ${type} AND id != ${id}
   ORDER BY CO2 DESC
-  LIMIT 3`, (error, results, fields) => {
-    if (error) throw error;
-    if (results.length === 0) {
-      res.send({
-        success: false,
-        data: [],
-        message: "Fetch error.",
-      });
-    } else {
-      res.send({
-        success: true,
-        data: results,
-        message: "Fetch Successfully.",
-      });
-    }
-  });
-});
-
-{/*
-SELECT c.username AS user_name, c.point, p.name AS product_name, p.CO2, p.image, p.category_id, l.* FROM list_productbyuser l RIGHT JOIN customers c ON l.userId = c.id INNER JOIN products p ON l.product_id = p.id;
-*/}
-router.get("/select_product", (req, res) => {
-  const in_id = req.query.in_id;
-console.log(in_id)
-  
-    db.query(`SELECT name,CO2,image
-    FROM products
-    WHERE id IN (${in_id});`, (error, results, fields) => {
+  LIMIT 3`,
+    (error, results, fields) => {
       if (error) throw error;
       if (results.length === 0) {
         res.send({
@@ -388,22 +359,238 @@ console.log(in_id)
           message: "Fetch Successfully.",
         });
       }
-    });
-  });
-  // INSERT INTO list_productbyuser (userId, product_id) VALUES (1, 100), (1, 101), (2, 102);
-  router.post("/create_listitem", (req, res) => {
-    const { userId, product_id} =
-      req.body;
-  
-    const product = { userId, product_id};
-    db.query("INSERT INTO list_productbyuser SET ?", product, (error, results, fields) => {
+    }
+  );
+});
+
+{
+  /*
+SELECT c.username AS user_name, c.point, p.name AS product_name, p.CO2, p.image, p.category_id, l.* FROM list_productbyuser l RIGHT JOIN customers c ON l.userId = c.id INNER JOIN products p ON l.product_id = p.id;
+*/
+}
+router.get("/select_product", (req, res) => {
+  const in_id = req.query.in_id;
+  console.log(in_id);
+
+  db.query(
+    `SELECT name,CO2,image
+    FROM products
+    WHERE id IN (${in_id});`,
+    (error, results, fields) => {
+      if (error) throw error;
+      if (results.length === 0) {
+        res.send({
+          success: false,
+          data: [],
+          message: "Fetch error.",
+        });
+      } else {
+        res.send({
+          success: true,
+          data: results,
+          message: "Fetch Successfully.",
+        });
+      }
+    }
+  );
+});
+// INSERT INTO list_productbyuser (userId, product_id) VALUES (1, 100), (1, 101), (2, 102);
+router.post("/create_listitem", (req, res) => {
+  const { userId, product_id } = req.body;
+
+  const product = { userId, product_id };
+  db.query(
+    "INSERT INTO list_productbyuser SET ?",
+    product,
+    (error, results, fields) => {
       if (error) throw error;
       res.send({
         success: true,
         message: "Product added successfully.",
       });
+    }
+  );
+});
+
+router.post("/create_cart", (req, res) => {
+  const { user_id, product_id, count, active } = req.body;
+
+  const product = { user_id, product_id, count, active };
+  db.query("INSERT INTO cart SET ?", product, (error, results, fields) => {
+    if (error) throw error;
+    res.send({
+      success: true,
+      message: "Product added successfully.",
     });
   });
+});
+
+router.get("/cart_count", (req, res) => {
+  req.query.user_id;
+  db.query(
+    `SELECT SUM(count) AS total_count FROM cart WHERE active = 1 AND user_id = ${req.query.user_id};`,
+    (error, results, fields) => {
+      if (error) throw error;
+      if (results.length === 0) {
+        res.send({
+          success: false,
+          data: [],
+          message: "Fetch error.",
+        });
+      } else {
+        res.send({
+          success: true,
+          data: results,
+          message: "Fetch Successfully.",
+        });
+      }
+    }
+  );
+});
+
+router.get("/cart_list", (req, res) => {
+  req.query.user_id;
+  db.query(
+    `SELECT
+    cart.id,
+    users.name AS user_name,
+    products.name AS product_name,
+    SUM(products.CO2) AS total_CO2,
+    MAX(products.image) AS image, -- Assuming the image is the same for duplicates
+    SUM(cart.count) AS total_cart_count,
+    MAX(cart.active) AS active -- Assuming active remains the same for duplicates
+FROM
+    cart
+JOIN
+    users ON cart.user_id = users.id
+JOIN
+    products ON cart.product_id = products.id
+WHERE
+    cart.user_id = ${req.query.user_id} and active = 1
+GROUP BY
+    users.name, products.name, products.CO2;`,
+    (error, results, fields) => {
+      if (error) throw error;
+      if (results.length === 0) {
+        res.send({
+          success: false,
+          data: [],
+          message: "Fetch error.",
+        });
+      } else {
+        res.send({
+          success: true,
+          data: results,
+          message: "Fetch Successfully.",
+        });
+      }
+    }
+  );
+});
+
+router.put("/update_cart/:id", (req, res) => {
+  const cartId = req.params.id;
+  const { total_cart_count } = req.body; // Assuming you're sending this data in the request body
+  console.log(req.body, req.params);
+  db.query(
+    `UPDATE cart
+     SET count = ?
+     WHERE id = ?`,
+    [total_cart_count, cartId],
+    (error, results, fields) => {
+      if (error) {
+        console.error("Error updating cart item:", error);
+        res
+          .status(500)
+          .send({ success: false, message: "Error updating cart item." });
+      } else {
+        res.send({ success: true, message: "Cart item updated successfully." });
+      }
+    }
+  );
+});
+
+router.post("/update_cart_active", (req, res) => {
+  console.log(req.body);
+  const updateData = req.body.updatedCartItems; // Assuming the request body contains the update array
+  const user_id = req.body.user_id;
+  if (!updateData || !Array.isArray(updateData)) {
+    res.status(400).json({
+      success: false,
+      message: "Invalid update data format.",
+    });
+    return;
+  }
+
+  const updatePromises = updateData.map((item) => {
+    return new Promise((resolve, reject) => {
+      const id = item.id;
+      const totalCartCount = item.total_cart_count;
+      const user_id = item.user_id;
+
+      db.query(
+        `UPDATE cart
+        SET active = ${0}  AND id = ${id} WHERE user_id = ${user_id}`,
+        (error, results, fields) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(results);
+          }
+        }
+      );
+    });
+  });
+
+  Promise.all(updatePromises)
+    .then(() => {
+      res.json({
+        success: true,
+        message: "Cart active status updated successfully.",
+      });
+    })
+    .catch((error) => {
+      res.status(500).json({
+        success: false,
+        message: "Error updating cart active status.",
+        error: error.message,
+      });
+    });
+});
+
+router.post("/historyCart", (req, res) => {
+  const { name, dataset, total_CO2, user_id } = req.body.param;
+
+  const insertQuery = `INSERT INTO historyCart (name, dataset, total_CO2, user_id) VALUES (?, ?, ?, ?)`;
+
+  db.query(insertQuery, [name, dataset, total_CO2, user_id], (err, result) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send("Error inserting data into historyCart");
+    } else {
+      res.status(201).send("Data inserted into historyCart");
+    }
+  });
+});
+
+
+
+//   SELECT
+//   users.name AS user_name,
+//   products.name AS name,
+//   (products.CO2 * cart.count) AS CO2,
+//   products.image AS image,
+//   cart.count AS cart_count,
+//   cart.active
+// FROM
+//   cart
+// JOIN
+//   users ON cart.user_id = users.id
+// JOIN
+//   products ON cart.product_id = products.id
+// WHERE
+//   cart.user_id = 1;
+
 // router.get("/image_preview", async (req, res) => {
 //   req.query.image;
 
