@@ -37,9 +37,11 @@ router.post("/register", signupValidation, (req, res, next) => {
           } else {
             // has hashed pw => add to database
             db.query(
-              `INSERT INTO users (name, email, password) VALUES ('${
+              `INSERT INTO users (name, email, password, role) VALUES ('${
                 req.body.name
-              }', ${db.escape(req.body.email)}, ${db.escape(hash)})`,
+              }', ${db.escape(req.body.email)}, ${db.escape(hash)},'${
+                req.body.role
+              }')`,
               (err, result) => {
                 if (err) {
                   throw err;
@@ -120,7 +122,7 @@ router.post("/login", loginValidation, (req, res, next) => {
     }
   );
 });
-router.post("/get-user", signupValidation, (req, res, next) => {
+router.get("/get-user", signupValidation, (req, res, next) => {
   if (
     !req.headers.authorization ||
     !req.headers.authorization.startsWith("Bearer") ||
@@ -455,7 +457,8 @@ router.get("/cart_list", (req, res) => {
     cart.id,
     users.name AS user_name,
     products.name AS product_name,
-    SUM(products.CO2) AS total_CO2,
+    SUM(products.CO2*cart.count) AS total_CO2,
+  products.CO2 AS total_CO2_def,
     MAX(products.image) AS image, -- Assuming the image is the same for duplicates
     SUM(cart.count) AS total_cart_count,
     MAX(cart.active) AS active -- Assuming active remains the same for duplicates
@@ -573,6 +576,48 @@ router.post("/historyCart", (req, res) => {
   });
 });
 
+
+
+router.delete("/delete_Cart", (req, res, next) => {
+  const userId = req.query.user_id;
+console.log(userId)
+  db.query(`DELETE FROM cart WHERE user_id = ${userId}`, (err, result) => {
+    if (result && result.affectedRows > 0) {
+      // <-- Check if at least one row was deleted
+      res.send({
+        success: true,
+        message: "Delete Successfully.",
+      });
+    } else {
+      res.send({
+        success: false,
+        message: "Delete Unsuccessful.",
+      });
+    }
+  });
+});
+router.get("/historycart", (req, res) => {
+  req.query.user_id;
+  db.query(
+    `SELECT * FROM historycart WHERE user_id = ${req.query.user_id};`,
+    (error, results, fields) => {
+      if (error) throw error;
+      if (results.length === 0) {
+        res.send({
+          success: false,
+          data: [],
+          message: "Fetch error.",
+        });
+      } else {
+        res.send({
+          success: true,
+          data: results,
+          message: "Fetch Successfully.",
+        });
+      }
+    }
+  );
+});
 
 
 //   SELECT
