@@ -19,7 +19,7 @@ app.use(bodyParser.urlencoded({
 app.use(cors());
  
 app.use('/api', indexRouter);
-app.get('/',(req,res) => res.json('api is connecting'))
+ 
 // Handling Errors
 app.use((err, req, res, next) => {
     // console.log(err);
