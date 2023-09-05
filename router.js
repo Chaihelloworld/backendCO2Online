@@ -457,7 +457,7 @@ router.get("/cart_list", (req, res) => {
     Max(cart.id) AS id,
     users.name AS user_name,
     products.name AS product_name,
-    CAST(SUM(products.CO2*cart.count) AS DOUBLE(10, 2)) AS total_CO2,
+    CAST(SUM(products.CO2*cart.count) AS DOUBLE) AS total_CO2,
     products.CO2 AS total_CO2_def,
     MAX(products.image) AS image,
     CAST(SUM(cart.count) AS SIGNED INTEGER) AS total_cart_count,
