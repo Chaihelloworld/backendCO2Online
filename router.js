@@ -564,7 +564,7 @@ router.post("/update_cart_active", (req, res) => {
 router.post("/historyCart", (req, res) => {
   const { name, dataset, total_CO2, user_id } = req.body.param;
 
-  const insertQuery = `INSERT INTO historyCart (name, dataset, total_CO2, user_id) VALUES (?, ?, ?, ?)`;
+  const insertQuery = `INSERT INTO historycart (name, dataset, total_CO2, user_id) VALUES (?, ?, ?, ?)`;
 
   db.query(insertQuery, [name, dataset, total_CO2, user_id], (err, result) => {
     if (err) {
