@@ -454,14 +454,14 @@ router.get("/cart_list", (req, res) => {
   req.query.user_id;
   db.query(
     `SELECT
-    Max(cart.id),
+    Max(cart.id) AS id,
     users.name AS user_name,
     products.name AS product_name,
-    CAST(SUM(products.CO2*cart.count) AS DECIMAL(10, 2)) AS total_CO2,
-  products.CO2 AS total_CO2_def,
-    MAX(products.image) AS image, -- Assuming the image is the same for duplicates
-    CAST(SUM(cart.count) AS INT) AS total_cart_count,
-    MAX(cart.active) AS active -- Assuming active remains the same for duplicates
+    CONVERT(SUM(products.CO2*cart.count), DECIMAL(10, 2)) AS total_CO2,
+    products.CO2 AS total_CO2_def,
+    MAX(products.image) AS image,
+    CONVERT(SUM(cart.count), SIGNED INTEGER) AS total_cart_count,
+    MAX(cart.active) AS active
 FROM
     cart
 JOIN
