@@ -454,7 +454,7 @@ router.get("/cart_list", (req, res) => {
   req.query.user_id;
   db.query(
     `SELECT
-    cart.id,
+    Max(cart.id),
     users.name AS user_name,
     products.name AS product_name,
     SUM(products.CO2*cart.count) AS total_CO2,
@@ -576,11 +576,9 @@ router.post("/historyCart", (req, res) => {
   });
 });
 
-
-
 router.delete("/delete_Cart", (req, res, next) => {
   const userId = req.query.user_id;
-console.log(userId)
+  console.log(userId);
   db.query(`DELETE FROM cart WHERE user_id = ${userId}`, (err, result) => {
     if (result && result.affectedRows > 0) {
       // <-- Check if at least one row was deleted
@@ -618,7 +616,6 @@ router.get("/historycart", (req, res) => {
     }
   );
 });
-
 
 //   SELECT
 //   users.name AS user_name,
