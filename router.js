@@ -452,43 +452,52 @@ router.get("/cart_count", (req, res) => {
 
 router.get("/cart_list", (req, res) => {
   req.query.user_id;
-  db.query(
-    `SELECT
-    Max(cart.id) AS id,
-    users.name AS user_name,
-    products.name AS product_name,
-    CAST(SUM(products.CO2*cart.count) AS DOUBLE) AS total_CO2,
-    products.CO2 AS total_CO2_def,
-    MAX(products.image) AS image,
-    CAST(SUM(cart.count) AS SIGNED INTEGER) AS total_cart_count,
-    MAX(cart.active) AS active
-FROM
-    cart
-JOIN
-    users ON cart.user_id = users.id
-JOIN
-    products ON cart.product_id = products.id
-WHERE
-    cart.user_id = ${req.query.user_id} and active = 1
-GROUP BY
-    users.name, products.name, products.CO2;`,
-    (error, results, fields) => {
-      if (error) throw error;
-      if (results.length === 0) {
-        res.send({
-          success: false,
-          data: [],
-          message: "Fetch error.",
-        });
-      } else {
-        res.send({
-          success: true,
-          data: results,
-          message: "Fetch Successfully.",
-        });
+  if(req.query.user_id){
+    db.query(
+      `SELECT
+      Max(cart.id) AS id,
+      users.name AS user_name,
+      products.name AS product_name,
+      CAST(SUM(products.CO2*cart.count) AS DOUBLE) AS total_CO2,
+      products.CO2 AS total_CO2_def,
+      MAX(products.image) AS image,
+      CAST(SUM(cart.count) AS SIGNED INTEGER) AS total_cart_count,
+      MAX(cart.active) AS active
+  FROM
+      cart
+  JOIN
+      users ON cart.user_id = users.id
+  JOIN
+      products ON cart.product_id = products.id
+  WHERE
+      cart.user_id = ${req.query.user_id} and active = 1
+  GROUP BY
+      users.name, products.name, products.CO2;`,
+      (error, results, fields) => {
+        if (error) throw error;
+        if (results.length === 0) {
+          res.send({
+            success: false,
+            data: [],
+            message: "Fetch error.",
+          });
+        } else {
+          res.send({
+            success: true,
+            data: results,
+            message: "Fetch Successfully.",
+          });
+        }
       }
-    }
-  );
+    );
+  }else{
+    res.send({
+      success: false,
+      data: [],
+      message: "Fetch error.",
+    });
+  }
+
 });
 
 router.put("/update_cart/:id", (req, res) => {
