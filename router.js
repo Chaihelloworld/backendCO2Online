@@ -453,54 +453,65 @@ router.get("/cart_count", (req, res) => {
 });
 
 router.get("/cart_list", (req, res) => {
-  req.query.user_id;
-  if(req.query.user_id){
-    db.query(
-      `SELECT
-      Max(cart.id) AS id,
+  const userId = req.query.user_id; // Store user_id in a variable
+
+  if (!userId) {
+    // If user_id is not provided in the query parameters, return an error response.
+    return res.status(400).json({
+      success: false,
+      data: [],
+      message: "user_id is missing in the query parameters.",
+    });
+  }
+
+  db.query(
+    `SELECT
+      MAX(cart.id) AS id,
       users.name AS user_name,
       products.name AS product_name,
-      CAST(SUM(products.CO2*cart.count) AS DOUBLE) AS total_CO2,
+      CAST(SUM(products.CO2 * cart.count) AS DOUBLE) AS total_CO2,
       products.CO2 AS total_CO2_def,
       MAX(products.image) AS image,
       CAST(SUM(cart.count) AS SIGNED INTEGER) AS total_cart_count,
       MAX(cart.active) AS active
-  FROM
+    FROM
       cart
-  JOIN
+    JOIN
       users ON cart.user_id = users.id
-  JOIN
+    JOIN
       products ON cart.product_id = products.id
-  WHERE
-      cart.user_id = ${req.query.user_id} and active = 1
-  GROUP BY
+    WHERE
+      cart.user_id = ? AND active = 1
+    GROUP BY
       users.name, products.name, products.CO2;`,
-      (error, results, fields) => {
-        if (error) throw error;
-        if (results.length === 0) {
-          res.send({
-            success: false,
-            data: [],
-            message: "Fetch error.",
-          });
-        } else {
-          res.send({
-            success: true,
-            data: results,
-            message: "Fetch Successfully.",
-          });
-        }
+    [userId], // Pass user_id as a parameter to prevent SQL injection
+    (error, results, fields) => {
+      if (error) {
+        console.error(error);
+        return res.status(500).json({
+          success: false,
+          data: [],
+          message: "An error occurred while fetching the cart list.",
+        });
       }
-    );
-  }else{
-    res.send({
-      success: false,
-      data: [],
-      message: "Fetch error.",
-    });
-  }
 
+      if (results.length === 0) {
+        return res.status(404).json({
+          success: false,
+          data: [],
+          message: "Cart list not found for the specified user_id.",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: results,
+        message: "Cart list fetched successfully.",
+      });
+    }
+  );
 });
+
 
 router.put("/update_cart/:id", (req, res) => {
   const cartId = req.params.id;
