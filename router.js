@@ -17,13 +17,17 @@ const moment = require("moment");
 const cookieSession = require("cookie-session");
 const { json } = require("body-parser");
 
-router.post("/register", signupValidation, (req, res, next) => {
+router.post("/register", signupValidation, async (req, res, next) => {
+  // let db = await connectDB();
   db.query(
     `SELECT * FROM users WHERE LOWER(email) = LOWER(${db.escape(
       req.body.email
     )});`,
     (err, result) => {
+      console.log(11111)
+      console.log(result)
       if (result.length) {
+        db.end();
         return res.status(409).send({
           msg: "This user is already in use!",
         });
@@ -31,6 +35,7 @@ router.post("/register", signupValidation, (req, res, next) => {
         // username is available
         bcrypt.hash(req.body.password, 10, (err, hash) => {
           if (err) {
+            db.end();
             return res.status(500).send({
               msg: err,
             });
@@ -45,10 +50,12 @@ router.post("/register", signupValidation, (req, res, next) => {
               (err, result) => {
                 if (err) {
                   throw err;
+                  db.end();
                   return res.status(400).send({
                     msg: err,
                   });
                 }
+                db.end();
                 return res.status(201).send({
                   msg: "The user has been registerd with us!",
                 });
@@ -81,6 +88,7 @@ router.post("/login", loginValidation, (req, res, next) => {
         });
       }
       if (!result.length) {
+        db.end();
         return res.status(401).send({
           msg: "Email or password is incorrect!",
         });
@@ -108,12 +116,14 @@ router.post("/login", loginValidation, (req, res, next) => {
             // );
             // req.session.isLoggedIn = true;
             // req.session.userID = rows[0].id;
+            db.end();
             return res.status(200).send({
               msg: "Logged in!",
               token,
               user: result[0],
             });
           }
+          db.end();
           return res.status(401).send({
             msg: "Username or password is incorrect!",
           });
@@ -140,6 +150,7 @@ router.get("/get-user", signupValidation, (req, res, next) => {
       decoded.id,
       function (error, results, fields) {
         if (error) throw error;
+        db.end();
         return res.send({
           error: false,
           data: results[0],
@@ -165,6 +176,7 @@ router.post("/create_products", (req, res) => {
   console.log(product);
   db.query("INSERT INTO products SET ?", product, (error, results, fields) => {
     if (error) throw error;
+    db.end();
     res.send({
       success: true,
       message: "Product added successfully.",
@@ -221,12 +233,14 @@ router.get("/products_list", (req, res) => {
     db.query(query, params, (error, results, fields) => {
       if (error) throw error;
       if (results.length === 0) {
+        db.end();
         res.send({
           success: false,
           data: [],
           message: "Fetch error.",
         });
       } else {
+        db.end();
         res.send({
           success: true,
           data: results,
@@ -277,12 +291,14 @@ router.get("/categories", (req, res) => {
   db.query("SELECT * FROM product_categories", (error, results, fields) => {
     if (error) throw error;
     if (results.length === 0) {
+      db.end();
       res.send({
         success: false,
         data: [],
         message: "Fetch error.",
       });
     } else {
+      db.end();
       res.send({
         success: true,
         data: results,
@@ -301,12 +317,14 @@ router.get("/info_product", (req, res) => {
     (error, results, fields) => {
       if (error) throw error;
       if (results.length === 0) {
+        db.end();
         res.send({
           success: false,
           data: [],
           message: "Fetch error.",
         });
       } else {
+        db.end();
         res.send({
           success: true,
           data: results,
@@ -324,11 +342,13 @@ router.delete("/delete_product", (req, res, next) => {
   db.query(`DELETE FROM products WHERE id = '${id}'`, (err, result) => {
     if (result && result.affectedRows > 0) {
       // <-- Check if at least one row was deleted
+      db.end();
       res.send({
         success: true,
         message: "Delete Successfully.",
       });
     } else {
+      db.end();
       res.send({
         success: false,
         message: "Delete Unsuccessful.",
@@ -351,12 +371,14 @@ router.get("/check_product", (req, res) => {
     (error, results, fields) => {
       if (error) throw error;
       if (results.length === 0) {
+        db.end();
         res.send({
           success: false,
           data: [],
           message: "Fetch error.",
         });
       } else {
+        db.end();
         res.send({
           success: true,
           data: results,
@@ -383,12 +405,14 @@ router.get("/select_product", (req, res) => {
     (error, results, fields) => {
       if (error) throw error;
       if (results.length === 0) {
+        db.end();
         res.send({
           success: false,
           data: [],
           message: "Fetch error.",
         });
       } else {
+        db.end();
         res.send({
           success: true,
           data: results,
@@ -408,6 +432,7 @@ router.post("/create_listitem", (req, res) => {
     product,
     (error, results, fields) => {
       if (error) throw error;
+      db.end();
       res.send({
         success: true,
         message: "Product added successfully.",
@@ -422,6 +447,7 @@ router.post("/create_cart", (req, res) => {
   const product = { user_id, product_id, count, active };
   db.query("INSERT INTO cart SET ?", product, (error, results, fields) => {
     if (error) throw error;
+    db.end();
     res.send({
       success: true,
       message: "Product added successfully.",
@@ -436,12 +462,14 @@ router.get("/cart_count", (req, res) => {
     (error, results, fields) => {
       if (error) throw error;
       if (results.length === 0) {
+        db.end();
         res.send({
           success: false,
           data: [],
           message: "Fetch error.",
         });
       } else {
+        db.end();
         res.send({
           success: true,
           data: results,
@@ -525,10 +553,12 @@ router.put("/update_cart/:id", (req, res) => {
     (error, results, fields) => {
       if (error) {
         console.error("Error updating cart item:", error);
+        db.end();
         res
           .status(500)
           .send({ success: false, message: "Error updating cart item." });
       } else {
+        db.end();
         res.send({ success: true, message: "Cart item updated successfully." });
       }
     }
@@ -540,6 +570,7 @@ router.post("/update_cart_active", (req, res) => {
   const updateData = req.body.updatedCartItems; // Assuming the request body contains the update array
   const user_id = req.body.user_id;
   if (!updateData || !Array.isArray(updateData)) {
+    db.end();
     res.status(400).json({
       success: false,
       message: "Invalid update data format.",
@@ -569,12 +600,14 @@ router.post("/update_cart_active", (req, res) => {
 
   Promise.all(updatePromises)
     .then(() => {
+      db.end();
       res.json({
         success: true,
         message: "Cart active status updated successfully.",
       });
     })
     .catch((error) => {
+      db.end();
       res.status(500).json({
         success: false,
         message: "Error updating cart active status.",
@@ -591,8 +624,10 @@ router.post("/historyCart", (req, res) => {
   db.query(insertQuery, [name, dataset, total_CO2, user_id], (err, result) => {
     if (err) {
       console.error(err);
+      db.end();
       res.status(500).send("Error inserting data into historyCart");
     } else {
+      db.end();
       res.status(201).send("Data inserted into historyCart");
     }
   });
@@ -604,11 +639,13 @@ router.delete("/delete_Cart", (req, res, next) => {
   db.query(`DELETE FROM cart WHERE user_id = ${userId}`, (err, result) => {
     if (result && result.affectedRows > 0) {
       // <-- Check if at least one row was deleted
+      db.end();
       res.send({
         success: true,
         message: "Delete Successfully.",
       });
     } else {
+      db.end();
       res.send({
         success: false,
         message: "Delete Unsuccessful.",
@@ -623,12 +660,14 @@ router.get("/historycart", (req, res) => {
     (error, results, fields) => {
       if (error) throw error;
       if (results.length === 0) {
+        db.end();
         res.send({
           success: false,
           data: [],
           message: "Fetch error.",
         });
       } else {
+        db.end();
         res.send({
           success: true,
           data: results,
