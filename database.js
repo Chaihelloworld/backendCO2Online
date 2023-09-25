@@ -1,6 +1,6 @@
 // var mysql = require('mysql2');
-// require('dotenv').config()
 
+require('dotenv').config()
 
 // var conn = mysql.createConnection({
 //   host: process.env.IP, // Replace with your host name
