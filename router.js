@@ -238,7 +238,7 @@ router.get("/products_list", (req, res) => {
     // Add limit and offset to query
     query += ` LIMIT ${limit} OFFSET ${offset}`;
 
-    db.query(query, params, (error, results, fields) => {
+    connection.query(query, params, (error, results, fields) => {
       if (error) throw error;
       if (results.length === 0) {
         connection.destroy()
